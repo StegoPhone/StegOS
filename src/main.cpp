@@ -1,4 +1,13 @@
+//################################################################################################
+//## StegoPhone : Steganography over Telephone
+//## (c) 2020 Jessica Mulein (jessica@mulein.com)
+//## All rights reserved.
+//## Made available under the GPLv3
+//################################################################################################
+
+// HEADERS
 #include <Arduino.h>
+#include "stegophone.h"
 
 /*
 This sketch tests the LEDs and ESP8266 on the Arduino-Teensy board.
@@ -15,7 +24,7 @@ the Teensy does not handle disabling and re-enabling serial ports correctly.
 */
 char trash = '\0';
 
-//Bool function to seach Serial RX buffer for a string value
+//Bool function to search Serial RX buffer for a string value
 bool recFind(String target, uint32_t timeout)
 {
   char rdChar = '\0';
@@ -69,6 +78,8 @@ void setup() {
   
   // Start Serial1 port
   Serial1.begin(115200);
+
+  StegoPhone::StegoPhone::getInstance()->setup();
 }
 
 void loop() {
@@ -96,8 +107,11 @@ void loop() {
     Serial.println("Failed");
   }
   // Clear Seria11 RX buffer
-  Serial.println("Test Complete");Serial.println();
+  Serial.println("Test Complete");
+  Serial.println();
   while (Serial1.available() > 0){
     trash = Serial1.read();
   }
+
+  StegoPhone::StegoPhone::getInstance()->loop();
 }
