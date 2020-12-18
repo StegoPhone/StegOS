@@ -12,6 +12,10 @@ StegoPhone software/hardware platform iteration 3
     - https://platformio.org/
     - https://docs.platformio.org/en/latest/what-is-platformio.html
 
+# Audio Libraries
+- AudioQR - https://github.com/ganny26/awesome-audioqr
+- Beginning to look like The Quiet Modem project is going to fit the bill!
+    - https://github.com/quiet   
 
 
 # Logo
