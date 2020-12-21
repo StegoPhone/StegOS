@@ -7,7 +7,11 @@
 
 // HEADERS
 #include <Arduino.h>
+#include <FreeRTOS_TEENSY4.h>
 #include "stegophone.h"
+
+// Declare a semaphore handle.
+SemaphoreHandle_t sem;
 
 /*
 This sketch tests the LEDs and ESP8266 on the Arduino-Teensy board.
@@ -51,6 +55,41 @@ bool recFind(String target, uint32_t timeout)
    }
 }
 
+void threadLoop1(void* arg) {
+  // Check D13 LED (RED)
+  Serial.println("D13 - built-in LED");
+  digitalWrite(13, HIGH); //D13 built-in LED - Set the pin HIGH turn on the LED
+  delay(2000);
+  digitalWrite(13, LOW); //Set the pin LOW to turn off the LED
+
+  // Check the Bluetooth State LED
+  Serial.println("Bluetooth STATE pin");
+  digitalWrite(30, HIGH); //D24 bluetooth STATE pin
+  delay(2000);
+  digitalWrite(30, LOW);
+  
+  // Check communications with the ESP8266 on TX1/RX1
+  Serial.println();Serial.print("Checking ESP8266...");
+  delay(500);
+  Serial1.println("AT+GMR");
+  if(recFind("OK", 5000)){
+    Serial.println("....Success");
+  }
+  else{
+    Serial.println("Failed");
+  }
+  // Clear Seria11 RX buffer
+  Serial.println("Test Complete");
+  Serial.println();
+  while (Serial1.available() > 0){
+    trash = Serial1.read();
+  }
+}
+
+void threadLoop2(void* arg) {
+  StegoPhone::StegoPhone::getInstance()->loop();
+}
+
 void setup() {                
   //Start the USB Serial port
   Serial.begin(115200);
@@ -80,38 +119,32 @@ void setup() {
   Serial1.begin(115200);
 
   StegoPhone::StegoPhone::getInstance()->setup();
+
+  // initialize semaphore
+  sem = xSemaphoreCreateCounting(1, 0);
+  portBASE_TYPE s1, s2;
+  // create task at priority two
+  s1 = xTaskCreate(threadLoop1, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+  // create task at priority one
+  s2 = xTaskCreate(threadLoop2, NULL, configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
+  // check for creation errors
+  if (sem== NULL || s1 != pdPASS || s2 != pdPASS ) {
+    Serial.println("Creation problem");
+    while(1);
+  }
+
+  Serial.println("Starting the scheduler !");
+
+  // start scheduler
+  vTaskStartScheduler();
+  Serial.println("Insufficient RAM");
+  while(1);
 }
 
+//------------------------------------------------------------------------------
+// WARNING idle loop has a very small stack (configMINIMAL_STACK_SIZE)
+// loop must never block
 void loop() {
-  
-  // Check D13 LED (RED)
-  Serial.println("D13 - built-in LED");
-  digitalWrite(13, HIGH); //D13 built-in LED - Set the pin HIGH turn on the LED
-  delay(2000);
-  digitalWrite(13, LOW); //Set the pin LOW to turn off the LED
-
-  // Check the Bluetooth State LED
-  Serial.println("Bluetooth STATE pin");
-  digitalWrite(30, HIGH); //D24 bluetooth STATE pin
-  delay(2000);
-  digitalWrite(30, LOW);
-  
-  // Check communications with the ESP8266 on TX1/RX1
-  Serial.println();Serial.print("Checking ESP8266...");
-  delay(500);
-  Serial1.println("AT+GMR");
-  if(recFind("OK", 5000)){
-    Serial.println("....Success");
-  }
-  else{
-    Serial.println("Failed");
-  }
-  // Clear Seria11 RX buffer
-  Serial.println("Test Complete");
-  Serial.println();
-  while (Serial1.available() > 0){
-    trash = Serial1.read();
-  }
-
-  StegoPhone::StegoPhone::getInstance()->loop();
+  // Not used.
 }
