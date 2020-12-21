@@ -1,3 +1,10 @@
+//################################################################################################
+//## StegoPhone : Steganography over Telephone / StegOS
+//## (c) 2020 Jessica Mulein (jessica@mulein.com)
+//## All rights reserved.
+//## Made available under the GPLv3
+//################################################################################################
+
 #include <cstdio>
 #include "stegophone.h"
 #include "rn52.h"
