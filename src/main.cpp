@@ -12,92 +12,72 @@
 
 // Declare a semaphore handle.
 SemaphoreHandle_t sem;
-usb_serial_class ConsoleSerial = Serial;
-HardwareSerial ESP8266Serial = Serial1;
-HardwareSerial RN52Serial = Serial7;
 char trash = '\0';
 
-//Bool function to search Serial RX buffer for a string value
-bool recFind(HardwareSerial serialPort, String target, uint32_t timeout)
-{
-  char rdChar = '\0';
-  String rdBuff = "";
-  unsigned long startMillis = millis();
-    while (millis() - startMillis < timeout){
-      while (serialPort.available() > 0){
-        rdChar = serialPort.read();
-        rdBuff += rdChar;
-        ConsoleSerial.write(rdChar);
-        if (rdBuff.indexOf(target) != -1) {
-          break;
+void threadLoop2(void *arg) {
+    while (true) {
+        // Check communications with the ESP8266 on TX1/RX1
+        StegoPhone::StegoPhone::ConsoleSerial.println();
+        StegoPhone::StegoPhone::ConsoleSerial.print("Checking ESP8266...");
+        delay(500);
+        StegoPhone::StegoPhone::ESP8266Serial.println("AT+GMR");
+        if (StegoPhone::StegoPhone::recFind(StegoPhone::StegoPhone::ESP8266Serial, "OK", 5000)) {
+            StegoPhone::StegoPhone::ConsoleSerial.println("....Success");
+        } else {
+            StegoPhone::StegoPhone::ConsoleSerial.println("Failed");
         }
-     }
-     if (rdBuff.indexOf(target) != -1) {
-          break;
-     }
-   }
-   if (rdBuff.indexOf(target) != -1){
-    return true;
-   }
-   else {
-    return false;
-   }
+        // Clear Seria11 RX buffer
+        StegoPhone::StegoPhone::ConsoleSerial.println("Test Complete");
+        StegoPhone::StegoPhone::ConsoleSerial.println();
+        while (StegoPhone::StegoPhone::ESP8266Serial.available() > 0) {
+            trash = StegoPhone::StegoPhone::ESP8266Serial.read();
+        }
+        delay(2000);
+    }
 }
 
-void threadLoop1(void* arg) {
-  // Check communications with the ESP8266 on TX1/RX1
-  ConsoleSerial.println();
-  ConsoleSerial.print("Checking ESP8266...");
-  delay(500);
-  ESP8266Serial.println("AT+GMR");
-  if(recFind(ESP8266Serial, "OK", 5000)){
-    ConsoleSerial.println("....Success");
-  }
-  else{
-    ConsoleSerial.println("Failed");
-  }
-  // Clear Seria11 RX buffer
-  ConsoleSerial.println("Test Complete");
-  ConsoleSerial.println();
-  while (ESP8266Serial.available() > 0){
-    trash = ESP8266Serial.read();
-  }
-  while(1);
+void threadLoop1(void *arg) {
+    while (1) {
+        StegoPhone::StegoPhone::getInstance()->loop();
+        delay(500);
+    }
 }
 
-void threadLoop2(void* arg) {
-  while (1)
-    StegoPhone::StegoPhone::getInstance()->loop();
+time_t getTeensy3Time() {
+    return Teensy3Clock.get();
 }
 
-void setup() {                
-  StegoPhone::StegoPhone::getInstance()->setup();
+void setup() {
+    StegoPhone::StegoPhone::getInstance()->setup();
 
-  // initialize semaphore
-  sem = xSemaphoreCreateCounting(1, 0);
-  portBASE_TYPE s1, s2;
-  // create task at priority two
-  s1 = xTaskCreate(threadLoop1, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-  // create task at priority one
-  s2 = xTaskCreate(threadLoop2, NULL, configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+    // set the Time library to use Teensy 3.0's RTC to keep time
+    setSyncProvider(getTeensy3Time);
 
-  // check for creation errors
-  if (sem== NULL || s1 != pdPASS || s2 != pdPASS ) {
-    ConsoleSerial.println("Creation problem");
-    while(1);
-  }
+    // initialize semaphore
+    sem = xSemaphoreCreateCounting(1, 0);
+    portBASE_TYPE s1, s2;
+    // create task at priority two
+    s1 = xTaskCreate(threadLoop1, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+    // create task at priority one
+    s2 = xTaskCreate(threadLoop2, NULL, configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
-  ConsoleSerial.println("Starting the scheduler !");
+    // check for creation errors
+    if (sem == NULL || s1 != pdPASS || s2 != pdPASS) {
+        StegoPhone::StegoPhone::ConsoleSerial.println("Creation problem");
+        while (1);
+    }
 
-  // start scheduler
-  vTaskStartScheduler();
-  ConsoleSerial.println("Insufficient RAM");
-  while(1);
+    StegoPhone::StegoPhone::ConsoleSerial.println("Starting the scheduler !");
+
+    // start scheduler
+    vTaskStartScheduler();
+    StegoPhone::StegoPhone::ConsoleSerial.println("Insufficient RAM");
+    while (1);
 }
 
 //------------------------------------------------------------------------------
 // WARNING idle loop has a very small stack (configMINIMAL_STACK_SIZE)
 // loop must never block
 void loop() {
-  // Not used.
+    // Not used.
 }

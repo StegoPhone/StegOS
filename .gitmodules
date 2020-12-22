@@ -1,0 +1,3 @@
+[submodule "lib/cpp-bmp-images"]
+	path = lib/cpp-bmp-images
+	url = git@github.com:StegoPhone/cpp-bmp-images.git

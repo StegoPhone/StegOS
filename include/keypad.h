@@ -26,6 +26,7 @@
 
 #ifndef _SPARKFUN_QWIIC_KEYPAD_ARDUINO_LIBRARY_H
 #define _SPARKFUN_QWIIC_KEYPAD_ARDUINO_LIBRARY_H
+
 #include "Arduino.h"
 #include "Wire.h"
 
@@ -33,36 +34,39 @@
 
 //Map to the various registers on the Keypad
 enum keypadRegisters {
-  KEYPAD_ID = 0x00,
-  KEYPAD_VERSION1, // 0x01
-  KEYPAD_VERSION2, // 0x02
-  KEYPAD_BUTTON, // 0x03
-  KEYPAD_TIME_MSB, // 0x04
-  KEYPAD_TIME_LSB, // 0x05
-  KEYPAD_UPDATE_FIFO, // 0x06
-  KEYPAD_CHANGE_ADDRESS, // 0x07
+    KEYPAD_ID = 0x00,
+    KEYPAD_VERSION1, // 0x01
+    KEYPAD_VERSION2, // 0x02
+    KEYPAD_BUTTON, // 0x03
+    KEYPAD_TIME_MSB, // 0x04
+    KEYPAD_TIME_LSB, // 0x05
+    KEYPAD_UPDATE_FIFO, // 0x06
+    KEYPAD_CHANGE_ADDRESS, // 0x07
 };
 
 class KEYPAD {
-  public:
+public:
     KEYPAD();
 
     boolean begin(TwoWire &wirePort = Wire, uint8_t deviceAddress = QWIIC_KEYPAD_ADDR);
+
     boolean isConnected(); //Checks if sensor ack's the I2C request
-	String getVersion(); //Returns a two byte Major/Minor version number	
-	
-    uint8_t getButton(); //Returns the button at the top of the stack (aka the oldest button)
-	uint16_t getTimeSincePressed(); //Returns the 16 bit number of time since button pressed
-	void updateFIFO(); 	// "commands" keypad to plug in the next button into the registerMap
-						// note, this actually sets the bit0 on the updateFIFO register
-	
-	void setI2CAddress(uint8_t newAddress); //Change the I2C address to newAddress (Prints new address over serial)
-	
-  private:
+    String getVersion(); //Returns a two byte Major/Minor version number
+
+    int getButton(); //Returns the button at the top of the stack (aka the oldest button)
+    uint16_t getTimeSincePressed(); //Returns the 16 bit number of time since button pressed
+    void updateFIFO();    // "commands" keypad to plug in the next button into the registerMap
+    // note, this actually sets the bit0 on the updateFIFO register
+
+    void setI2CAddress(uint8_t newAddress); //Change the I2C address to newAddress (Prints new address over serial)
+
+private:
     TwoWire *_i2cPort;
-	uint8_t _deviceAddress;
+    uint8_t _deviceAddress;
+
     boolean writeRegister(uint8_t addr, uint8_t val);
-    uint8_t readRegister(uint8_t addr);
+
+    uint8_t readRegister(uint8_t addr, bool &error);
 
 };
 

@@ -11,22 +11,24 @@
 #include <Arduino.h>
 #include <Callback.h>
 
-namespace StegoPhone
-{
-  class LineBuffer
-  {
+namespace StegoPhone {
+    class LineBuffer {
     public:
-      LineBuffer();
-      ~LineBuffer();
-      void setup();
-      void loop();
-      Signal<char*> lineReceived;
-      
+        LineBuffer();
+
+        ~LineBuffer();
+
+        void setup();
+
+        void loop();
+
+        Signal<char *> lineReceived;
+
     private:
-      char *_serialBuffer;
-      int _serialBufferSize;
-      int _serialBufferDataLength;
-  };
+        char *_serialBuffer;
+        int _serialBufferSize;
+        int _serialBufferDataLength;
+    };
 }
 
 #endif //_LINEBUFFER_H_
