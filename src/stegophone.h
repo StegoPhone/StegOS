@@ -9,10 +9,10 @@
 #define _STEGOPHONE_H_
 
 #include <Arduino.h>
-#include "keypad.h"
-//#include <Wire.h>
-//include <ArduinoBLE.h>
+#include <SPI.h>
+#include <Wire.h>
 
+#include "keypad.h"
 #include "rn52.h"
 
 namespace StegoPhone
@@ -42,17 +42,28 @@ namespace StegoPhone
   class StegoPhone
   {
     public:
-      StegoStatus status();
-
       // PIN DEFINITIONS
       //================================================================================================
-      static const byte rn52ENPin = 0;          // active high
-      static const byte rn52CMDPin = 1;         // active low
-      static const byte rn52SPISel = 2;         //
-      static const byte rn52InterruptPin = 7; // input no pull, active low 100ms
-      static const byte keypadInterruptPin = 8; // input no pull, active low
-      static const byte userLED = 19;
+      static const byte rn52ENPin = 2;          // active high
+      static const byte rn52CMDPin = 3;         // active low
+      static const byte rn52SPISel = 4;         //
+      static const byte rn52InterruptPin = 30;  // input no pull, active low 100ms
+      static const byte keypadInterruptPin = 6; // input no pull, active low
+      static const byte twistInterruptPin = 7;  // input no pull, active low
+      static const byte userLEDPin = 13;        // D13
+
+      static const int ConsoleSerialRate = 115200;
+      static const int DisplaySerialRate = 9600;
+      static const int ESP8266SerialRate = 115200;
+      static const int RN52SerialRate = 115200;
+
+      usb_serial_class ConsoleSerial = Serial;
+      HardwareSerial ESP8266Serial = Serial1;
+      HardwareSerial DisplaySerial = Serial2;
+      HardwareSerial RN52Serial = Serial7;
       //================================================================================================
+
+      StegoStatus status();
 
       static StegoPhone *getInstance();
       void setup();
@@ -77,7 +88,7 @@ namespace StegoPhone
 
       // HARDWARE HANDLES
       //================================================================================================
-      KEYPAD keypad;
+      static KEYPAD keypad;
 
       // Internal
       //================================================================================================

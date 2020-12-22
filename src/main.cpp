@@ -12,33 +12,22 @@
 
 // Declare a semaphore handle.
 SemaphoreHandle_t sem;
-
-/*
-This sketch tests the LEDs and ESP8266 on the Arduino-Teensy board.
-The LEDs connected to the serial ports are active-low.  This means 
-that you need to set the pinmode to OUTPUT and then use digitalwrite
-to set the pin LOW in order to turn them on.  To turn them off, use
-digitalwrite to set the pin HIGH, or use pinmode to set the pin to INPUT mode.
-Pins D13 (built-in LED pin) and D30 (bluetooth module STATE pin) are
-active-high and are turned on and off like standard LEDs.
-
-TX1/RX1 are checked once before enabling Serial1 port due to the fact that
-the Teensy does not handle disabling and re-enabling serial ports correctly.
-
-*/
+usb_serial_class ConsoleSerial = Serial;
+HardwareSerial ESP8266Serial = Serial1;
+HardwareSerial RN52Serial = Serial7;
 char trash = '\0';
 
 //Bool function to search Serial RX buffer for a string value
-bool recFind(String target, uint32_t timeout)
+bool recFind(HardwareSerial serialPort, String target, uint32_t timeout)
 {
   char rdChar = '\0';
   String rdBuff = "";
   unsigned long startMillis = millis();
     while (millis() - startMillis < timeout){
-      while (Serial1.available() > 0){
-        rdChar = Serial1.read();
+      while (serialPort.available() > 0){
+        rdChar = serialPort.read();
         rdBuff += rdChar;
-        Serial.write(rdChar);
+        ConsoleSerial.write(rdChar);
         if (rdBuff.indexOf(target) != -1) {
           break;
         }
@@ -56,68 +45,32 @@ bool recFind(String target, uint32_t timeout)
 }
 
 void threadLoop1(void* arg) {
-  // Check D13 LED (RED)
-  Serial.println("D13 - built-in LED");
-  digitalWrite(13, HIGH); //D13 built-in LED - Set the pin HIGH turn on the LED
-  delay(2000);
-  digitalWrite(13, LOW); //Set the pin LOW to turn off the LED
-
-  // Check the Bluetooth State LED
-  Serial.println("Bluetooth STATE pin");
-  digitalWrite(30, HIGH); //D24 bluetooth STATE pin
-  delay(2000);
-  digitalWrite(30, LOW);
-  
   // Check communications with the ESP8266 on TX1/RX1
-  Serial.println();Serial.print("Checking ESP8266...");
+  ConsoleSerial.println();
+  ConsoleSerial.print("Checking ESP8266...");
   delay(500);
-  Serial1.println("AT+GMR");
-  if(recFind("OK", 5000)){
-    Serial.println("....Success");
+  ESP8266Serial.println("AT+GMR");
+  if(recFind(ESP8266Serial, "OK", 5000)){
+    ConsoleSerial.println("....Success");
   }
   else{
-    Serial.println("Failed");
+    ConsoleSerial.println("Failed");
   }
   // Clear Seria11 RX buffer
-  Serial.println("Test Complete");
-  Serial.println();
-  while (Serial1.available() > 0){
-    trash = Serial1.read();
+  ConsoleSerial.println("Test Complete");
+  ConsoleSerial.println();
+  while (ESP8266Serial.available() > 0){
+    trash = ESP8266Serial.read();
   }
+  while(1);
 }
 
 void threadLoop2(void* arg) {
-  StegoPhone::StegoPhone::getInstance()->loop();
+  while (1)
+    StegoPhone::StegoPhone::getInstance()->loop();
 }
 
 void setup() {                
-  //Start the USB Serial port
-  Serial.begin(115200);
-  Serial.println("Started");
-  // initialize the digital pins as an output.
-  pinMode(13, OUTPUT);  
-  pinMode(30, OUTPUT);    
-  Serial.println("Checking LEDs");
-  
-  // Check TX1 LED
-  pinMode(1, OUTPUT); // set the pinmode to OUTPUT
-  Serial.println("TX1");
-  digitalWrite(1, LOW); //TX1 - set the pin LOW to turn on the LED
-  delay(2000);  //wait 2 seconds
-  digitalWrite(1, HIGH); //set the pin HIGH to turn off the LED
-  pinMode(1, INPUT);  //set pinmode back to INPUT so the LED will go out without the pin being set HIGH
-  
-  // Check RX1 LED
-  pinMode(0, OUTPUT);
-  Serial.println("RX1");
-  digitalWrite(0, LOW); //RX1
-  delay(2000);
-  digitalWrite(0, HIGH);
-  pinMode(0, INPUT);
-  
-  // Start Serial1 port
-  Serial1.begin(115200);
-
   StegoPhone::StegoPhone::getInstance()->setup();
 
   // initialize semaphore
@@ -130,15 +83,15 @@ void setup() {
 
   // check for creation errors
   if (sem== NULL || s1 != pdPASS || s2 != pdPASS ) {
-    Serial.println("Creation problem");
+    ConsoleSerial.println("Creation problem");
     while(1);
   }
 
-  Serial.println("Starting the scheduler !");
+  ConsoleSerial.println("Starting the scheduler !");
 
   // start scheduler
   vTaskStartScheduler();
-  Serial.println("Insufficient RAM");
+  ConsoleSerial.println("Insufficient RAM");
   while(1);
 }
 
