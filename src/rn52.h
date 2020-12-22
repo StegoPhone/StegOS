@@ -43,12 +43,28 @@ namespace StegoPhone
 
       bool ExceptionOccurred();
 
+      bool Enable();
+
+      bool Disable();
+
+      bool Enabled();
+
+      bool CmdMode();
+
+      bool CmdModeEnable();
+
+      bool CmdModeDisable();
+
     protected:
+      void setEnable(bool newValue);
+      void setCmdModeEnable(bool newValue);
       static RN52 *_instance;
       RN52();
       bool exceptionOccurred = false;
       LineBuffer *_lineBuffer;
       RN52Status _status;
+      bool _enabled;
+      bool _cmd;
   };
 }
 

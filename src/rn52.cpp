@@ -24,14 +24,18 @@ namespace StegoPhone
 
   bool RN52::setup()
   {
-      this->_lineBuffer->setup();
-      digitalWrite(StegoPhone::StegoPhone::rn52ENPin, true);
+      //this->_lineBuffer->setup();
+    // force modes/init
+    this->_cmd = true;
+    this->_enabled = false;
+    pinMode(StegoPhone::rn52ENPin, OUTPUT);
+    pinMode(StegoPhone::rn52CMDPin, OUTPUT);
+    pinMode(StegoPhone::rn52SPISel, OUTPUT);
+    digitalWrite(StegoPhone::rn52ENPin, !this->_enabled);
+    digitalWrite(StegoPhone::rn52CMDPin, !this->_cmd); // cmd mode by default
+    digitalWrite(StegoPhone::rn52SPISel, false);    
       
-      // waitfor CMD
-      //if (strcmp(cmdTest, "CMD\r\n") != 0) {
-      //  this->exceptionOccurred = true;
-      //}
-      return this->exceptionOccurred;
+    return !this->exceptionOccurred;
   }
 
   void RN52::receiveLine(char *line) {
@@ -56,9 +60,9 @@ namespace StegoPhone
   }
 
   void RN52::loop(bool rn52InterruptOccurred) {
-    this->_lineBuffer->loop();
+    //this->_lineBuffer->loop();
 
-    StegoPhone *stego = StegoPhone::StegoPhone::getInstance();
+    //StegoPhone *stego = StegoPhone::StegoPhone::getInstance();
 
     if (rn52InterruptOccurred)
       this->updateStatus();
@@ -66,6 +70,57 @@ namespace StegoPhone
 
   bool RN52::ExceptionOccurred() {
     return this->exceptionOccurred;
+  }
+
+  bool RN52::Enabled() {
+    return this->_enabled;
+  }
+
+  void RN52::setEnable(bool newValue) {
+    this->_enabled = newValue;
+    digitalWrite(StegoPhone::StegoPhone::rn52ENPin, this->_enabled);
+  }
+
+  bool RN52::Enable() {
+    if (this->_enabled) {
+      this->exceptionOccurred = true;
+      return false;
+    }
+    this->setEnable(true);
+
+    // waitfor CMD
+    if(!StegoPhone::recFind(StegoPhone::StegoPhone::RN52Serial, "CMD", 5000)){
+      this->exceptionOccurred = true;
+      this->Disable();
+    } else {
+      this->_enabled = true;
+    }
+
+    return this->_enabled;
+  }
+
+  bool RN52::Disable() {
+    this->setEnable(false);
+    return !this->_enabled;
+  }
+
+  void RN52::setCmdModeEnable(bool newValue) {
+    this->_cmd = newValue;
+    digitalWrite(StegoPhone::StegoPhone::rn52ENPin, !this->_cmd); // Active LOW
+  }
+
+  bool RN52::CmdMode() {
+    return this->_cmd;
+  }
+  
+  bool RN52::CmdModeEnable() {
+    this->setCmdModeEnable(true);
+    return this->_cmd;
+  }
+
+  bool RN52::CmdModeDisable() {
+    this->setCmdModeEnable(false);
+    return this->_cmd;
   }
   
   void RN52::rn52Command(const char *cmd) {
@@ -89,7 +144,7 @@ namespace StegoPhone
     if (this->exceptionOccurred) return 0;
     char result[10]; // need 8, allow serbuf to pick up 10 to be sure for leftovers
     rn52Exec("Q", result, sizeof(result)); 
-    for (int i=4; i<sizeof(result); i++)
+    for (uint8_t i=4; i<sizeof(result); i++)
       result[i] = '\0'; // although null term'd at 10, data ends after 0-3. knock out the rest
     Serial.println(result);
     for (int i=0; i<5; i++) // copy through term to output array
@@ -101,12 +156,10 @@ namespace StegoPhone
   void RN52::rn52Debug(const char *cmd, const int interDelay, const int bufferSize) {
     if (this->exceptionOccurred) return;
     char cmdTest[bufferSize];
-    int cmdIdx = 0;
-    StegoPhone *stego = StegoPhone::getInstance();
-    //stego->displayMessageDual("RN52",cmd);
+    uint8_t cmdIdx = 0;
+    //StegoPhone *stego = StegoPhone::getInstance();
     rn52Command(cmd);
     delay(interDelay);
-    //stego->decimalOnPurple();
     while (Serial1.available() > 0) {
       int incomingByte = Serial1.read();
       if (cmdIdx < (sizeof(cmdTest)-1)) {
@@ -116,7 +169,6 @@ namespace StegoPhone
       }
     }
     cmdTest[cmdIdx++] = '\0';
-    //stego->decimalOffPurple();
     Serial.print("RN52:");
     Serial.print(cmdTest);
   }

@@ -49,20 +49,20 @@ class KEYPAD {
 
     boolean begin(TwoWire &wirePort = Wire, uint8_t deviceAddress = QWIIC_KEYPAD_ADDR);
     boolean isConnected(); //Checks if sensor ack's the I2C request
-	String getVersion(); //Returns a two byte Major/Minor version number	
+    String getVersion(); //Returns a two byte Major/Minor version number
 	
-    uint8_t getButton(); //Returns the button at the top of the stack (aka the oldest button)
-	uint16_t getTimeSincePressed(); //Returns the 16 bit number of time since button pressed
-	void updateFIFO(); 	// "commands" keypad to plug in the next button into the registerMap
-						// note, this actually sets the bit0 on the updateFIFO register
+    int getButton(); //Returns the button at the top of the stack (aka the oldest button)
+    uint16_t getTimeSincePressed(); //Returns the 16 bit number of time since button pressed
+    void updateFIFO(); 	// "commands" keypad to plug in the next button into the registerMap
+    // note, this actually sets the bit0 on the updateFIFO register
 	
-	void setI2CAddress(uint8_t newAddress); //Change the I2C address to newAddress (Prints new address over serial)
+	  void setI2CAddress(uint8_t newAddress); //Change the I2C address to newAddress (Prints new address over serial)
 	
   private:
     TwoWire *_i2cPort;
-	uint8_t _deviceAddress;
+	  uint8_t _deviceAddress;
     boolean writeRegister(uint8_t addr, uint8_t val);
-    uint8_t readRegister(uint8_t addr);
+    uint8_t readRegister(uint8_t addr, bool &error);
 
 };
 

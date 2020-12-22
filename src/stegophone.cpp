@@ -5,6 +5,10 @@
 //## Made available under the GPLv3
 //################################################################################################
 
+#include <cmath>
+#include <iostream>
+#include <cstdio>
+#include <fstream>
 #include <stddef.h>
 #include "stegophone.h"
 
@@ -12,15 +16,17 @@ namespace StegoPhone
 {
   StegoPhone *StegoPhone::_instance = 0;
 
-
-  KEYPAD StegoPhone::keypad = KEYPAD();
   U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI StegoPhone::display(U8G2_R0, OLED_CLK_Pin, OLED_SDA_Pin, OLED_CS_Pin, OLED_DC_Pin, OLED_RESET_Pin);
+
+  usb_serial_class StegoPhone::ConsoleSerial = Serial;
+  HardwareSerial StegoPhone::ESP8266Serial = Serial1;
+  HardwareSerial StegoPhone::RN52Serial = Serial7;
+  SdExFat StegoPhone::sd = SdExFat();
 
   StegoPhone::StegoPhone() {
     this->_status = StegoStatus::Offline;
     this->userLEDStatus = true;
     this->rn52InterruptOccurred = false; // updated by ISR if RN52 has an event
-    this->keypadInterruptOccurred = false; // used to keep track if there is a button on the stack
 
     // Serial ports
     ConsoleSerial.begin(ConsoleSerialRate); // console/debug
@@ -30,23 +36,12 @@ namespace StegoPhone
     // Display
     display.begin();
 
-    pinMode(rn52ENPin, OUTPUT);
-    pinMode(rn52CMDPin, OUTPUT);
-    pinMode(rn52SPISel, OUTPUT);
-    pinMode(rn52InterruptPin, INPUT); // Qwiic Keypad holds INT pin HIGH @ 3.3V, then LOW when fired.
-    pinMode(keypadInterruptPin, INPUT); // Qwiic Keypad holds INT pin HIGH @ 3.3V, then LOW when fired.
+    pinMode(rn52InterruptPin, INPUT);
     // Note, this means we do not want INPUT_PULLUP.
     pinMode(userLEDPin, OUTPUT);
 
-    digitalWrite(rn52ENPin, false);
-    digitalWrite(rn52CMDPin, false); // cmd mode by default
-    digitalWrite(rn52SPISel, false);
     digitalWrite(userLEDPin, StegoPhone::userLEDStatus);
 
-    attachInterrupt(digitalPinToInterrupt(keypadInterruptPin), intReadKeypad, FALLING);
-    // Note, INT on the Keypad will "fall" from HIGH to LOW when a new button has been pressed.
-    // Also note, it will stay low while there are still button events on the stack.
-    // This is useful if you want to "poll" the INT pin, rather than use a hardware interrupt.
     attachInterrupt(digitalPinToInterrupt(rn52InterruptPin), intRN52Update, FALLING);
 
     Wire.begin(); //Join I2C bus
@@ -67,22 +62,12 @@ namespace StegoPhone
 
     this->_status = StegoStatus::DisplayInitialized;
 
-    if (keypad.begin() == false)   // Note, using begin() like this will use default I2C address, 0x4B.
-    {                              // You can pass begin() a different address like so: keypad1.begin(Wire, 0x4A).
-      //this->displayMessageDual("KYPD","MSNG");
-      this->_status = StegoStatus::InitializationFailure;
-      display.drawStr(0,20,"Keypad Missing");
-      display.sendBuffer();
-      this->blinkForever();
-    }
-    // keypad input is ok
-
     // boot RN-52
     display.drawStr(0,20,"RN52 Initializing");
     display.sendBuffer();
     RN52 *rn52 = RN52::getInstance();
     // try to initialize
-    if (rn52->setup()) {
+    if (!rn52->setup()) {
       display.clearBuffer();
       display.drawStr(0,10,"StegoPhone / StegOS");
       display.drawStr(0,20,"RN52 Error");
@@ -92,33 +77,110 @@ namespace StegoPhone
     } else {
       this->_status = StegoStatus::Ready; 
     }
-    display.clearBuffer();          // clear the internal memory
+
+    display.clearBuffer();
     display.drawStr(0,10,"StegoPhone / StegOS");
-    display.drawStr(0,20,"Ready");
+    display.drawStr(0,20,"Initializing SD Card");
     display.sendBuffer();
+
+    bool haveLogo = false;
+    std::vector<unsigned char> logoEncoded;
+    if (!sd.begin(SD_CONFIG)) {
+      display.clearBuffer();
+      display.drawStr(0,10,"StegoPhone / StegOS");
+      display.drawStr(0,20,"SD Failed init");
+      display.sendBuffer();
+      ConsoleSerial.println("SD initialization failed");
+      this->blinkForever();
+    } else {
+      display.clearBuffer();
+      display.drawStr(0,10,"StegoPhone / StegOS");
+      display.drawStr(0,20,"SD Initialized");
+      display.drawStr(0,30,"Opening Logo File");
+      display.sendBuffer();
+
+      ExFile stegoLogo = sd.open("stegophone.png", FILE_READ);
+      if (stegoLogo) {
+        display.drawStr(0,40,"Reading Logo File");
+        display.sendBuffer();
+
+        // get its size:
+        uint64_t fileSize = stegoLogo.size();
+
+        // read the data:
+        unsigned char pngBytes[fileSize];
+        int count = stegoLogo.read(pngBytes, fileSize);
+        ConsoleSerial.println(count);
+        stegoLogo.close();
+
+        display.drawStr(0,50,"Preparing palatte");
+        display.sendBuffer();
+
+        //create encoder and set settings and info (optional)
+        lodepng::State state;
+        //generate palette
+        for(int i = 0; i < 16; i++) {
+          unsigned char r = 127 * (1 + std::sin(5 * i * 6.28318531 / 16));
+          unsigned char g = 127 * (1 + std::sin(2 * i * 6.28318531 / 16));
+          unsigned char b = 127 * (1 + std::sin(3 * i * 6.28318531 / 16));
+          unsigned char a = 63 * (1 + std::sin(8 * i * 6.28318531 / 16)) + 128; /*alpha channel of the palette (tRNS chunk)*/
+
+          //palette must be added both to input and output color mode, because in this
+          //sample both the raw image and the expected PNG image use that palette.
+          lodepng_palette_add(&state.info_png.color, r, g, b, a);
+          lodepng_palette_add(&state.info_raw, r, g, b, a);
+        }
+        //both the raw image and the encoded image must get colorType 3 (palette)
+        state.info_png.color.colortype = LCT_PALETTE; //if you comment this line, and create the above palette in info_raw instead, then you get the same image in a RGBA PNG.
+        state.info_png.color.bitdepth = 4;
+        state.info_raw.colortype = LCT_PALETTE;
+        state.info_raw.bitdepth = 4;
+        state.encoder.auto_convert = 0; //we specify ourselves exactly what output PNG color mode we want
+
+        char bytesStr[50];
+        snprintf(bytesStr, sizeof(bytesStr), "Encoding %" PRIu64 " bytes", fileSize);
+        display.drawStr(0,60,bytesStr);
+        display.sendBuffer();
+
+        //encode
+        unsigned error = lodepng::encode(logoEncoded, pngBytes, 256, 64, state);
+        display.clearBuffer();
+        display.drawStr(0,10,"StegoPhone / StegOS");
+
+        if(error) {
+          display.drawStr(0,60,lodepng_error_text(error));
+          display.sendBuffer();
+          ConsoleSerial.println("encoder error");
+          ConsoleSerial.println(error);
+          ConsoleSerial.println(lodepng_error_text(error));
+        } else {
+          haveLogo = true;
+        }
+      } else {
+        ConsoleSerial.println("Failed to read from SD");
+        display.drawStr(0,60,"Failed to read from SD");
+        display.sendBuffer();
+      }
+    }
+
+    if (haveLogo) {
+      display.clearBuffer();
+      display.drawXBM( 0, 0, 256, 64, (const uint8_t *)&logoEncoded[0]);
+      display.sendBuffer();
+
+    } else {
+      display.clearBuffer();
+      display.drawStr(0,10,"StegoPhone / StegOS");
+      display.drawStr(0,20,"Ready");
+      display.sendBuffer();
+    }
   }
 
   void StegoPhone::loop()
   {
       // blink if you can hear me
-      if (this->keypadInterruptOccurred || this->rn52InterruptOccurred)
+      if (this->rn52InterruptOccurred)
         this->toggleUserLED();
-
-      // process any keypad inputs first
-      if (this->keypadInterruptOccurred) {
-        keypad.updateFIFO();  // necessary for keypad to pull button from stack to readable register
-        const byte pressedDigit = keypad.getButton();
-        if (pressedDigit == -1) {
-          // fifo cleared
-        } else {
-          char tmp[2] = {(char) pressedDigit, 0};
-          display.drawStr(0,30, "   ");
-          display.drawStr(0,30, tmp);
-          display.sendBuffer();
-          ConsoleSerial.print((char) pressedDigit);
-        }
-        this->keypadInterruptOccurred = false;
-      }
 
       // give the RN52 a chance to handle its inputs
       RN52 *rn52 = RN52::getInstance();
@@ -153,15 +215,35 @@ namespace StegoPhone
       }
   }
 
-  // intReadKeypad() is triggered via FALLING interrupt pin (digital pin 2)
-  // it them updates the global variable keypadInterruptOccurred
-  void StegoPhone::intReadKeypad() // (static isr) keep this quick; no delays, prints, I2C allowed.
-  {
-    StegoPhone::getInstance()->keypadInterruptOccurred = true;
-  }
-
   void StegoPhone::intRN52Update() // (static isr)
   {
     StegoPhone::getInstance()->rn52InterruptOccurred = true;
+  }
+
+  //Bool function to search Serial RX buffer for a string value
+  bool StegoPhone::recFind(HardwareSerial serialPort, String target, uint32_t timeout)
+  {
+    char rdChar = '\0';
+    String rdBuff = "";
+    unsigned long startMillis = millis();
+      while (millis() - startMillis < timeout){
+        while (serialPort.available() > 0){
+          rdChar = serialPort.read();
+          rdBuff += rdChar;
+          ConsoleSerial.write(rdChar);
+          if (rdBuff.indexOf(target) != -1) {
+            break;
+          }
+      }
+      if (rdBuff.indexOf(target) != -1) {
+            break;
+      }
+    }
+    if (rdBuff.indexOf(target) != -1){
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 }

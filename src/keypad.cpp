@@ -87,17 +87,19 @@ void KEYPAD::setI2CAddress(uint8_t newAddress)
 }
 
 ////Returns the button at the top of the stack (aka the oldest button)
-byte KEYPAD::getButton()
+int KEYPAD::getButton()
 {
-  byte button = readRegister(KEYPAD_BUTTON);
-  return(button);
+  bool error;
+  byte button = readRegister(KEYPAD_BUTTON, error);
+  return (error ? -1 : button);
 }
 
 //Returns the number of milliseconds since the current button in FIFO was pressed.
 uint16_t KEYPAD::getTimeSincePressed()
 {
-  uint16_t MSB = readRegister(KEYPAD_TIME_MSB);
-  uint16_t LSB = readRegister(KEYPAD_TIME_LSB);  
+  bool error;
+  uint16_t MSB = readRegister(KEYPAD_TIME_MSB, error);
+  uint16_t LSB = readRegister(KEYPAD_TIME_LSB, error);
   uint16_t timeSincePressed = (MSB << 8);
   timeSincePressed |= LSB;
   return timeSincePressed;
@@ -106,16 +108,17 @@ uint16_t KEYPAD::getTimeSincePressed()
 //Returns a string of the firmware version number
 String KEYPAD::getVersion()
 {
-  uint8_t Major = readRegister(KEYPAD_VERSION1);
-  uint8_t Minor = readRegister(KEYPAD_VERSION2);
-
+  bool error;
+  uint8_t Major = readRegister(KEYPAD_VERSION1, error);
+  uint8_t Minor = readRegister(KEYPAD_VERSION2, error);
   return("v" + String(Major) + "." + String(Minor));
 }
 
 
 //Reads from a given location from the Keypad
-uint8_t KEYPAD::readRegister(uint8_t addr)
+uint8_t KEYPAD::readRegister(uint8_t addr, bool &error)
 {
+  error = true;
   _i2cPort->beginTransmission((uint8_t)_deviceAddress);
   _i2cPort->write(addr);
   if (_i2cPort->endTransmission() != 0)
@@ -125,6 +128,7 @@ uint8_t KEYPAD::readRegister(uint8_t addr)
   }
   _i2cPort->requestFrom((uint8_t)_deviceAddress, (uint8_t)1);
   if (_i2cPort->available()) {
+    error = false;
     return (_i2cPort->read());
   }
   return (0); //Device failed to respond

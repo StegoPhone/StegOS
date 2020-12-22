@@ -9,11 +9,20 @@
 #define _STEGOPHONE_H_
 
 #include <Arduino.h>
+#define U8G2_16BIT
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <TimeLib.h>
 
-#include "keypad.h"
+#include "SdFat.h"
+#include "sdios.h"
+#include "FreeStack.h"
+#include "ExFatlib\ExFatLib.h"
+
+#define SD_CONFIG SdioConfig(DMA_SDIO)
+
+#include "lodepng.h"
 #include "rn52.h"
 
 namespace StegoPhone
@@ -23,7 +32,7 @@ namespace StegoPhone
     InitializationStart,
     InitializationFailure,
     DisplayInitialized,
-    KeypadInitialized,
+    InputInitialized,
     ExternalRN52Initialized,
     InternalBTInitialized,    
     Ready,
@@ -49,8 +58,6 @@ namespace StegoPhone
       static const byte rn52CMDPin = 3;         // active low
       static const byte rn52SPISel = 4;         //
       static const byte rn52InterruptPin = 30;  // input no pull, active low 100ms
-      static const byte keypadInterruptPin = 6; // input no pull, active low
-      static const byte twistInterruptPin = 7;  // input no pull, active low
       static const byte userLEDPin = 13;        //
       static const byte OLED_CLK_Pin = 16;      //
       static const byte OLED_SDA_Pin = 17;      //
@@ -62,11 +69,11 @@ namespace StegoPhone
       static const int ESP8266SerialRate = 115200;
       static const int RN52SerialRate = 115200;
 
-      usb_serial_class ConsoleSerial = Serial;
-      HardwareSerial ESP8266Serial = Serial1;
-      HardwareSerial RN52Serial = Serial7;
+      static usb_serial_class ConsoleSerial;
+      static HardwareSerial ESP8266Serial;
+      static HardwareSerial RN52Serial;
       //================================================================================================
-
+      static bool recFind(HardwareSerial serialPort, String target, uint32_t timeout);
       StegoStatus status();
 
       static StegoPhone *getInstance();
@@ -84,16 +91,15 @@ namespace StegoPhone
     protected:
       // ISR/MODIFIED
       //================================================================================================
-      static void intReadKeypad();  
       static void intRN52Update();
       volatile bool userLEDStatus;
       volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
-      volatile boolean keypadInterruptOccurred; // used to keep track if there is a button on the stack
-
+      
       // HARDWARE HANDLES
       //================================================================================================
-      static KEYPAD keypad;
       static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;
+
+      static SdExFat sd;
 
       // Internal
       //================================================================================================
