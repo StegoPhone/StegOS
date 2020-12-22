@@ -44,30 +44,34 @@ bool recFind(HardwareSerial serialPort, String target, uint32_t timeout)
    }
 }
 
-void threadLoop1(void* arg) {
-  // Check communications with the ESP8266 on TX1/RX1
-  ConsoleSerial.println();
-  ConsoleSerial.print("Checking ESP8266...");
-  delay(500);
-  ESP8266Serial.println("AT+GMR");
-  if(recFind(ESP8266Serial, "OK", 5000)){
-    ConsoleSerial.println("....Success");
+void threadLoop2(void* arg) {
+  while (true) {
+    // Check communications with the ESP8266 on TX1/RX1
+    ConsoleSerial.println();
+    ConsoleSerial.print("Checking ESP8266...");
+    delay(500);
+    ESP8266Serial.println("AT+GMR");
+    if(recFind(ESP8266Serial, "OK", 5000)){
+      ConsoleSerial.println("....Success");
+    }
+    else{
+      ConsoleSerial.println("Failed");
+    }
+    // Clear Seria11 RX buffer
+    ConsoleSerial.println("Test Complete");
+    ConsoleSerial.println();
+    while (ESP8266Serial.available() > 0){
+      trash = ESP8266Serial.read();
+    }
+    delay(2000);
   }
-  else{
-    ConsoleSerial.println("Failed");
-  }
-  // Clear Seria11 RX buffer
-  ConsoleSerial.println("Test Complete");
-  ConsoleSerial.println();
-  while (ESP8266Serial.available() > 0){
-    trash = ESP8266Serial.read();
-  }
-  while(1);
 }
 
-void threadLoop2(void* arg) {
-  while (1)
+void threadLoop1(void* arg) {
+  while (1) {
     StegoPhone::StegoPhone::getInstance()->loop();
+    delay(500);
+  }
 }
 
 void setup() {                

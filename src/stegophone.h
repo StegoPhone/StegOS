@@ -9,6 +9,7 @@
 #define _STEGOPHONE_H_
 
 #include <Arduino.h>
+#include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
 
@@ -50,16 +51,19 @@ namespace StegoPhone
       static const byte rn52InterruptPin = 30;  // input no pull, active low 100ms
       static const byte keypadInterruptPin = 6; // input no pull, active low
       static const byte twistInterruptPin = 7;  // input no pull, active low
-      static const byte userLEDPin = 13;        // D13
+      static const byte userLEDPin = 13;        //
+      static const byte OLED_CLK_Pin = 16;      //
+      static const byte OLED_SDA_Pin = 17;      //
+      static const byte OLED_CS_Pin = 10;       //
+      static const byte OLED_DC_Pin = 9;        //
+      static const byte OLED_RESET_Pin = 33;    //
 
-      static const int ConsoleSerialRate = 115200;
-      static const int DisplaySerialRate = 9600;
+      static const int ConsoleSerialRate = 9600;
       static const int ESP8266SerialRate = 115200;
       static const int RN52SerialRate = 115200;
 
       usb_serial_class ConsoleSerial = Serial;
       HardwareSerial ESP8266Serial = Serial1;
-      HardwareSerial DisplaySerial = Serial2;
       HardwareSerial RN52Serial = Serial7;
       //================================================================================================
 
@@ -89,6 +93,7 @@ namespace StegoPhone
       // HARDWARE HANDLES
       //================================================================================================
       static KEYPAD keypad;
+      static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;
 
       // Internal
       //================================================================================================

@@ -14,6 +14,7 @@ namespace StegoPhone
 
 
   KEYPAD StegoPhone::keypad = KEYPAD();
+  U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI StegoPhone::display(U8G2_R0, OLED_CLK_Pin, OLED_SDA_Pin, OLED_CS_Pin, OLED_DC_Pin, OLED_RESET_Pin);
 
   StegoPhone::StegoPhone() {
     this->_status = StegoStatus::Offline;
@@ -25,7 +26,9 @@ namespace StegoPhone
     ConsoleSerial.begin(ConsoleSerialRate); // console/debug
     RN52Serial.begin(RN52SerialRate); // Connected to RN52
     ESP8266Serial.begin(ESP8266SerialRate); // ESP-12E
-    DisplaySerial.begin(DisplaySerialRate); // ESP-12E
+
+    // Display
+    display.begin();
 
     pinMode(rn52ENPin, OUTPUT);
     pinMode(rn52CMDPin, OUTPUT);
@@ -57,33 +60,42 @@ namespace StegoPhone
 
   void StegoPhone::setup() {
     this->_status = StegoStatus::InitializationStart;
+    display.clear();
+    display.setFont(u8g2_font_amstrad_cpc_extended_8f);
+    display.drawStr(0,10,"StegoPhone / StegOS");
+    display.sendBuffer();
 
     this->_status = StegoStatus::DisplayInitialized;
-    DisplaySerial.write(0xFE);
-    DisplaySerial.write(0x01);
-    DisplaySerial.println("StegOS");
-    delay(500);
 
     if (keypad.begin() == false)   // Note, using begin() like this will use default I2C address, 0x4B.
     {                              // You can pass begin() a different address like so: keypad1.begin(Wire, 0x4A).
       //this->displayMessageDual("KYPD","MSNG");
       this->_status = StegoStatus::InitializationFailure;
+      display.drawStr(0,20,"Keypad Missing");
+      display.sendBuffer();
       this->blinkForever();
     }
     // keypad input is ok
 
     // boot RN-52
-    DisplaySerial.println("RN52 Init");
+    display.drawStr(0,20,"RN52 Initializing");
+    display.sendBuffer();
     RN52 *rn52 = RN52::getInstance();
     // try to initialize
     if (rn52->setup()) {
-      DisplaySerial.println("RN52 Error");
+      display.clearBuffer();
+      display.drawStr(0,10,"StegoPhone / StegOS");
+      display.drawStr(0,20,"RN52 Error");
+      display.sendBuffer();
       this->_status = StegoStatus::InitializationFailure;
       this->blinkForever();
     } else {
-      DisplaySerial.println("StegoPhone Ready");
       this->_status = StegoStatus::Ready; 
     }
+    display.clearBuffer();          // clear the internal memory
+    display.drawStr(0,10,"StegoPhone / StegOS");
+    display.drawStr(0,20,"Ready");
+    display.sendBuffer();
   }
 
   void StegoPhone::loop()
@@ -99,7 +111,10 @@ namespace StegoPhone
         if (pressedDigit == -1) {
           // fifo cleared
         } else {
-          DisplaySerial.print((char) pressedDigit);
+          char tmp[2] = {(char) pressedDigit, 0};
+          display.drawStr(0,30, "   ");
+          display.drawStr(0,30, tmp);
+          display.sendBuffer();
           ConsoleSerial.print((char) pressedDigit);
         }
         this->keypadInterruptOccurred = false;
