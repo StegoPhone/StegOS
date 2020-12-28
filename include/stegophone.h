@@ -24,7 +24,7 @@
 
 #define SD_CONFIG SdioConfig(DMA_SDIO)
 
-#include "BMP.h"
+#include "BMPpp.h"
 #include "rn52.h"
 
 namespace StegoPhone {

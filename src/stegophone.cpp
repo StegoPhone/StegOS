@@ -74,23 +74,21 @@ namespace StegoPhone {
 
     bool StegoPhone::displayLogo() {
         bool haveLogo = false;
-        std::vector<unsigned char> logoEncoded;
         display.clearBuffer();
         display.drawStr(0, 10, "StegoPhone / StegOS");
         display.drawStr(0, 20, "SD Initialized");
         display.drawStr(0, 30, "Opening Logo File");
         display.sendBuffer();
-
-
-        BMP stegoLogo;
-        if (stegoLogo.read(StegoPhone::sd, "stegophone.bmp")) {
+        
+        //BMPpp stegoLogo;
+        if (false) {
             display.drawStr(0, 40, "Reading Logo File");
             display.sendBuffer();
 
             // get its size:
-            uint32_t fileSize = stegoLogo.file_header.file_size;
+            //uint32_t fileSize = stegoLogo.file_header.file_size;
 
-            ConsoleSerial.println(fileSize);
+            //ConsoleSerial.println(fileSize);
             haveLogo = true;
         }
 
