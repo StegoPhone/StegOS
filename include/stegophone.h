@@ -8,7 +8,6 @@
 #ifndef _STEGOPHONE_H_
 #define _STEGOPHONE_H_
 
-#define LV_LVGL_H_INCLUDE_SIMPLE 1
 #define U8G2_16BIT 1
 
 #include <Arduino.h>
