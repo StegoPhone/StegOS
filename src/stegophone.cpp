@@ -90,8 +90,14 @@ namespace StegoPhone {
             BMPpp::BMP stegoBMP = stegoLogo.getBMP();
             // get its size:
             uint32_t fileSize = stegoBMP.file_header.file_size;
+            std::vector<unsigned char> grayBMP = stegoLogo.get4bppPackedLCDGray();
 
             ConsoleSerial.println(fileSize);
+            ConsoleSerial.println(grayBMP.size());
+            ConsoleSerial.println(stegoBMP.bmp_info_header.height);
+            ConsoleSerial.println(stegoBMP.bmp_info_header.width);
+            displayGrayscaleBytes(grayBMP.size(), &grayBMP[0]);
+
             haveLogo = true;
         }
 
