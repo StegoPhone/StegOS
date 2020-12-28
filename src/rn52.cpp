@@ -5,7 +5,6 @@
 //## Made available under the GPLv3
 //################################################################################################
 
-#include <cstdio>
 #include "stegophone.h"
 #include "rn52.h"
 #include "linebuffer.h"
@@ -24,7 +23,7 @@ namespace StegoPhone
 
   bool RN52::setup()
   {
-      //this->_lineBuffer->setup();
+    //this->_lineBuffer->setup();
     // force modes/init
     this->_cmd = true;
     this->_enabled = false;
@@ -33,7 +32,7 @@ namespace StegoPhone
     pinMode(StegoPhone::rn52SPISel, OUTPUT);
     digitalWrite(StegoPhone::rn52ENPin, !this->_enabled);
     digitalWrite(StegoPhone::rn52CMDPin, !this->_cmd); // cmd mode by default
-    digitalWrite(StegoPhone::rn52SPISel, false);    
+    digitalWrite(StegoPhone::rn52SPISel, false);
       
     return !this->exceptionOccurred;
   }
@@ -112,7 +111,7 @@ namespace StegoPhone
   bool RN52::CmdMode() {
     return this->_cmd;
   }
-  
+
   bool RN52::CmdModeEnable() {
     this->setCmdModeEnable(true);
     return this->_cmd;

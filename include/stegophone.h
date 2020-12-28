@@ -8,8 +8,11 @@
 #ifndef _STEGOPHONE_H_
 #define _STEGOPHONE_H_
 
+#define LV_LVGL_H_INCLUDE_SIMPLE 1
+#define U8G2_16BIT 1
+
 #include <Arduino.h>
-#define U8G2_16BIT
+#include <vector>
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -22,7 +25,7 @@
 
 #define SD_CONFIG SdioConfig(DMA_SDIO)
 
-#include "lodepng.h"
+#include "BMP.h"
 #include "rn52.h"
 
 namespace StegoPhone
@@ -33,13 +36,15 @@ namespace StegoPhone
     InitializationFailure,
     DisplayInitialized,
     InputInitialized,
-    ExternalRN52Initialized,
-    InternalBTInitialized,    
+    PhoneBTInitialized,
+    HeadsetBTInitialized,
     Ready,
-    Ringing,
+    CallIncoming,
+    IncomingRinging,
     CallConnected,
-    PiedPiperPiping,
-    PiedPiperDuet,
+    QuietModemAnnouncing,
+    QuietModemHandshaking,
+    QuietModemConnected,
     CallPINSending,
     CallPINSynchronized,
     ModemInitializing,
@@ -83,9 +88,9 @@ namespace StegoPhone
       // Built-In LED
       //================================================================================================
       void setUserLED(bool newValue);
-      
+
       void toggleUserLED();
-      
+
       void blinkForever(int interval  = 1000);
 
     protected:
@@ -94,7 +99,7 @@ namespace StegoPhone
       static void intRN52Update();
       volatile bool userLEDStatus;
       volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
-      
+
       // HARDWARE HANDLES
       //================================================================================================
       static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;
@@ -106,6 +111,9 @@ namespace StegoPhone
       StegoPhone();
       StegoStatus _status;
       static StegoPhone *_instance;
+
+      void displayGrayscaleBytes(uint8_t count, unsigned char* data);
+      bool displayLogo();
     };
 }
 
