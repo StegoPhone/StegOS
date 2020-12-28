@@ -22,7 +22,7 @@
 
 #define SD_CONFIG SdioConfig(DMA_SDIO)
 
-#include "lodepng.h"
+//#include "BMP.h"
 #include "rn52.h"
 
 namespace StegoPhone
@@ -34,7 +34,7 @@ namespace StegoPhone
     DisplayInitialized,
     InputInitialized,
     ExternalRN52Initialized,
-    InternalBTInitialized,    
+    InternalBTInitialized,
     Ready,
     Ringing,
     CallConnected,
@@ -83,9 +83,9 @@ namespace StegoPhone
       // Built-In LED
       //================================================================================================
       void setUserLED(bool newValue);
-      
+
       void toggleUserLED();
-      
+
       void blinkForever(int interval  = 1000);
 
     protected:
@@ -94,7 +94,7 @@ namespace StegoPhone
       static void intRN52Update();
       volatile bool userLEDStatus;
       volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
-      
+
       // HARDWARE HANDLES
       //================================================================================================
       static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;

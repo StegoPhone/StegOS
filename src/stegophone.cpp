@@ -6,9 +6,6 @@
 //################################################################################################
 
 #include <cmath>
-#include <iostream>
-#include <cstdio>
-#include <fstream>
 #include <stddef.h>
 #include "stegophone.h"
 
@@ -75,7 +72,7 @@ namespace StegoPhone
       this->_status = StegoStatus::InitializationFailure;
       this->blinkForever();
     } else {
-      this->_status = StegoStatus::Ready; 
+      this->_status = StegoStatus::Ready;
     }
 
     display.clearBuffer();
@@ -84,7 +81,6 @@ namespace StegoPhone
     display.sendBuffer();
 
     bool haveLogo = false;
-    std::vector<unsigned char> logoEncoded;
     if (!sd.begin(SD_CONFIG)) {
       display.clearBuffer();
       display.drawStr(0,10,"StegoPhone / StegOS");
@@ -98,75 +94,9 @@ namespace StegoPhone
       display.drawStr(0,20,"SD Initialized");
       display.drawStr(0,30,"Opening Logo File");
       display.sendBuffer();
-
-      ExFile stegoLogo = sd.open("stegophone.png", FILE_READ);
-      if (stegoLogo) {
-        display.drawStr(0,40,"Reading Logo File");
-        display.sendBuffer();
-
-        // get its size:
-        uint64_t fileSize = stegoLogo.size();
-
-        // read the data:
-        unsigned char pngBytes[fileSize];
-        int count = stegoLogo.read(pngBytes, fileSize);
-        ConsoleSerial.println(count);
-        stegoLogo.close();
-
-        display.drawStr(0,50,"Preparing palatte");
-        display.sendBuffer();
-
-        //create encoder and set settings and info (optional)
-        lodepng::State state;
-        //generate palette
-        for(int i = 0; i < 16; i++) {
-          unsigned char r = 127 * (1 + std::sin(5 * i * 6.28318531 / 16));
-          unsigned char g = 127 * (1 + std::sin(2 * i * 6.28318531 / 16));
-          unsigned char b = 127 * (1 + std::sin(3 * i * 6.28318531 / 16));
-          unsigned char a = 63 * (1 + std::sin(8 * i * 6.28318531 / 16)) + 128; /*alpha channel of the palette (tRNS chunk)*/
-
-          //palette must be added both to input and output color mode, because in this
-          //sample both the raw image and the expected PNG image use that palette.
-          lodepng_palette_add(&state.info_png.color, r, g, b, a);
-          lodepng_palette_add(&state.info_raw, r, g, b, a);
-        }
-        //both the raw image and the encoded image must get colorType 3 (palette)
-        state.info_png.color.colortype = LCT_PALETTE; //if you comment this line, and create the above palette in info_raw instead, then you get the same image in a RGBA PNG.
-        state.info_png.color.bitdepth = 4;
-        state.info_raw.colortype = LCT_PALETTE;
-        state.info_raw.bitdepth = 4;
-        state.encoder.auto_convert = 0; //we specify ourselves exactly what output PNG color mode we want
-
-        char bytesStr[50];
-        snprintf(bytesStr, sizeof(bytesStr), "Encoding %" PRIu64 " bytes", fileSize);
-        display.drawStr(0,60,bytesStr);
-        display.sendBuffer();
-
-        //encode
-        unsigned error = lodepng::encode(logoEncoded, pngBytes, 256, 64, state);
-        display.clearBuffer();
-        display.drawStr(0,10,"StegoPhone / StegOS");
-
-        if(error) {
-          display.drawStr(0,60,lodepng_error_text(error));
-          display.sendBuffer();
-          ConsoleSerial.println("encoder error");
-          ConsoleSerial.println(error);
-          ConsoleSerial.println(lodepng_error_text(error));
-        } else {
-          haveLogo = true;
-        }
-      } else {
-        ConsoleSerial.println("Failed to read from SD");
-        display.drawStr(0,60,"Failed to read from SD");
-        display.sendBuffer();
-      }
     }
 
     if (haveLogo) {
-      display.clearBuffer();
-      display.drawXBM( 0, 0, 256, 64, (const uint8_t *)&logoEncoded[0]);
-      display.sendBuffer();
 
     } else {
       display.clearBuffer();
