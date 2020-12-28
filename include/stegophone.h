@@ -27,92 +27,97 @@
 #include "BMP.h"
 #include "rn52.h"
 
-namespace StegoPhone
-{
-  enum class StegoStatus {
-    Offline,
-    InitializationStart,
-    InitializationFailure,
-    DisplayInitialized,
-    InputInitialized,
-    PhoneBTInitialized,
-    HeadsetBTInitialized,
-    Ready,
-    CallIncoming,
-    IncomingRinging,
-    CallConnected,
-    QuietModemAnnouncing,
-    QuietModemHandshaking,
-    QuietModemConnected,
-    CallPINSending,
-    CallPINSynchronized,
-    ModemInitializing,
-    ModemHandshaking,
-    EncryptionHandshaking,
-    EncryptedDataEstablished,
-    EncryptedVoice
-  };
+namespace StegoPhone {
+    enum class StegoStatus {
+        Offline,
+        InitializationStart,
+        InitializationFailure,
+        DisplayInitialized,
+        InputInitialized,
+        PhoneBTInitialized,
+        HeadsetBTInitialized,
+        Ready,
+        CallIncoming,
+        IncomingRinging,
+        CallConnected,
+        QuietModemAnnouncing,
+        QuietModemHandshaking,
+        QuietModemConnected,
+        CallPINSending,
+        CallPINSynchronized,
+        ModemInitializing,
+        ModemHandshaking,
+        EncryptionHandshaking,
+        EncryptedDataEstablished,
+        EncryptedVoice
+    };
 
-  class StegoPhone
-  {
+    class StegoPhone {
     public:
-      // PIN DEFINITIONS
-      //================================================================================================
-      static const byte rn52ENPin = 2;          // active high
-      static const byte rn52CMDPin = 3;         // active low
-      static const byte rn52SPISel = 4;         //
-      static const byte rn52InterruptPin = 30;  // input no pull, active low 100ms
-      static const byte userLEDPin = 13;        //
-      static const byte OLED_CLK_Pin = 16;      //
-      static const byte OLED_SDA_Pin = 17;      //
-      static const byte OLED_CS_Pin = 10;       //
-      static const byte OLED_DC_Pin = 9;        //
-      static const byte OLED_RESET_Pin = 33;    //
+        // PIN DEFINITIONS
+        //================================================================================================
+        static const byte rn52ENPin = 2;          // active high
+        static const byte rn52CMDPin = 3;         // active low
+        static const byte rn52SPISel = 4;         //
+        static const byte rn52InterruptPin = 30;  // input no pull, active low 100ms
+        static const byte userLEDPin = 13;        //
+        static const byte OLED_CLK_Pin = 16;      //
+        static const byte OLED_SDA_Pin = 17;      //
+        static const byte OLED_CS_Pin = 10;       //
+        static const byte OLED_DC_Pin = 9;        //
+        static const byte OLED_RESET_Pin = 33;    //
 
-      static const int ConsoleSerialRate = 9600;
-      static const int ESP8266SerialRate = 115200;
-      static const int RN52SerialRate = 115200;
+        static const int ConsoleSerialRate = 9600;
+        static const int ESP8266SerialRate = 115200;
+        static const int RN52SerialRate = 115200;
 
-      static usb_serial_class ConsoleSerial;
-      static HardwareSerial ESP8266Serial;
-      static HardwareSerial RN52Serial;
-      //================================================================================================
-      static bool recFind(HardwareSerial serialPort, String target, uint32_t timeout);
-      StegoStatus status();
+        static usb_serial_class ConsoleSerial;
+        static HardwareSerial ESP8266Serial;
+        static HardwareSerial RN52Serial;
 
-      static StegoPhone *getInstance();
-      void setup();
-      void loop();
+        //================================================================================================
+        static bool recFind(HardwareSerial serialPort, String target, uint32_t timeout);
 
-      // Built-In LED
-      //================================================================================================
-      void setUserLED(bool newValue);
+        StegoStatus status();
 
-      void toggleUserLED();
+        static StegoPhone *getInstance();
 
-      void blinkForever(int interval  = 1000);
+        void setup();
+
+        void loop();
+
+        // Built-In LED
+        //================================================================================================
+        void setUserLED(bool newValue);
+
+        void toggleUserLED();
+
+        void blinkForever(int interval = 1000);
 
     protected:
-      // ISR/MODIFIED
-      //================================================================================================
-      static void intRN52Update();
-      volatile bool userLEDStatus;
-      volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
+        // ISR/MODIFIED
+        //================================================================================================
+        static void intRN52Update();
 
-      // HARDWARE HANDLES
-      //================================================================================================
-      static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;
+        volatile bool userLEDStatus;
+        volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
 
-      static SdExFat sd;
+        // HARDWARE HANDLES
+        //================================================================================================
+        static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;
 
-      // Internal
-      //================================================================================================
-      StegoPhone();
-      StegoStatus _status;
-      static StegoPhone *_instance;
+        static SdExFat sd;
 
-      void displayGrayscaleBytes(uint8_t count, unsigned char* data);
-      bool displayLogo();
+        // Internal
+        //================================================================================================
+        StegoPhone();
+
+        StegoStatus _status;
+        static StegoPhone *_instance;
+
+        void displayGrayscaleBytes(uint8_t count, unsigned char *data);
+
+        bool displayLogo();
     };
 }
 

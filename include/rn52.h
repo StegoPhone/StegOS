@@ -11,61 +11,64 @@
 #include <Arduino.h>
 #include "linebuffer.h"
 
-namespace StegoPhone
-{
-  enum class RN52Status {
-    Offline,
-    Present,
-    Error
-  };
+namespace StegoPhone {
+    enum class RN52Status {
+        Offline,
+        Present,
+        Error
+    };
 
-  class RN52
-  {
+    class RN52 {
     public:
-      static RN52 *getInstance();
-      bool setup();
+        static RN52 *getInstance();
 
-      void loop(bool rn52InterruptOccurred);
+        bool setup();
 
-      void receiveLine(char *line);
+        void loop(bool rn52InterruptOccurred);
 
-      RN52Status status();
+        void receiveLine(char *line);
 
-      void updateStatus();
-      
-      void rn52Command(const char *cmd);
-      
-      void rn52Exec(const char *cmd, char *buf, const int interDelay = 100, const int bufferSize = 1024);
-      
-      unsigned short rn52Status(char *hexArray);
-      
-      void rn52Debug(const char *cmd, const int interDelay = 50, const int bufferSize = 1024);
+        RN52Status status();
 
-      bool ExceptionOccurred();
+        void updateStatus();
 
-      bool Enable();
+        void rn52Command(const char *cmd);
 
-      bool Disable();
+        void rn52Exec(const char *cmd, char *buf, const int interDelay = 100, const int bufferSize = 1024);
 
-      bool Enabled();
+        unsigned short rn52Status(char *hexArray);
 
-      bool CmdMode();
+        void rn52Debug(const char *cmd, const int interDelay = 50, const int bufferSize = 1024);
 
-      bool CmdModeEnable();
+        bool ExceptionOccurred();
 
-      bool CmdModeDisable();
+        bool Enable();
+
+        bool Disable();
+
+        bool Enabled();
+
+        bool CmdMode();
+
+        bool CmdModeEnable();
+
+        bool CmdModeDisable();
 
     protected:
-      void setEnable(bool newValue);
-      void setCmdModeEnable(bool newValue);
-      static RN52 *_instance;
-      RN52();
-      bool exceptionOccurred = false;
-      LineBuffer *_lineBuffer;
-      RN52Status _status;
-      bool _enabled;
-      bool _cmd;
-  };
+        void setEnable(bool newValue);
+
+        void setCmdModeEnable(bool newValue);
+
+        static RN52 *_instance;
+
+        RN52();
+
+        bool exceptionOccurred = false;
+        LineBuffer *_lineBuffer;
+        RN52Status _status;
+        bool _enabled;
+        bool _cmd;
+    };
 }
 
 #endif // _RN52_H_
