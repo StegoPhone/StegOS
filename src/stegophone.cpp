@@ -12,6 +12,8 @@
 namespace StegoPhone {
     StegoPhone *StegoPhone::_instance = 0;
 
+    KeyboardController StegoPhone::keyboard(StegoPhone::usb);
+
     U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI StegoPhone::display(U8G2_R0, OLED_CLK_Pin, OLED_SDA_Pin, OLED_CS_Pin,
                                                             OLED_DC_Pin, OLED_RESET_Pin);
 
@@ -42,6 +44,8 @@ namespace StegoPhone {
         attachInterrupt(digitalPinToInterrupt(rn52InterruptPin), intRN52Update, FALLING);
 
         Wire.begin(); //Join I2C bus
+
+        usb.begin();
     }
 
     StegoPhone *StegoPhone::getInstance() {
@@ -70,31 +74,6 @@ namespace StegoPhone {
 
     bool StegoPhone::displayLogo() {
         bool haveLogo = false;
-        std::vector<unsigned char> logoEncoded;
-        drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
-        drawDisplay(0, 20, "SD Initialized", true, false);
-        drawDisplay(0, 30, "Opening Logo File", true, false);
-
-        ExFile stegoLogo = StegoPhone::sd.open("stegophone.xbm", FILE_READ | O_READ);
-        if (stegoLogo) {
-            uint64_t fileSize = stegoLogo.size();
-            drawDisplay(0, 10, fileSize, true, true);
-
-            delay(1000);
-            uint8_t fileBuf[fileSize];
-            uint64_t read = stegoLogo.readBytes(fileBuf, fileSize);
-            drawDisplay(0, 20, read, true, false);
-            delay(1000);
-            if (read == fileSize) {
-                display.drawXBM(0, 0, 256, 64, fileBuf);
-                display.sendBuffer();
-                haveLogo = true;
-            } else {
-                drawDisplay(0,10, "error", true, true);
-            }
-        } else {
-            drawDisplay(0, 10, "no load", true, true);
-        }
 
         return haveLogo;
     }
@@ -133,12 +112,10 @@ namespace StegoPhone {
 
         if (!this->displayLogo()) {
         }
-        // if (!this->displayLogo()) {
-        //     display.clearBuffer();
-        //     display.drawStr(0, 10, "StegoPhone / StegOS");
-        //     display.drawStr(0, 20, "Ready");
-        //     display.sendBuffer();
-        // }
+
+        keyboard.attachPress(StegoPhone::OnUSBKeyboardPress);
+        keyboard.attachRawPress(StegoPhone::OnUSBKeyboardRawPress);
+	    keyboard.attachRawRelease(StegoPhone::OnUSBKeyboardRawRelease);
     }
 
     void StegoPhone::loop() {
@@ -157,6 +134,9 @@ namespace StegoPhone {
             default:
                 break;
         }
+
+        // handle USB
+        usb.Task();
     }
 
     StegoStatus StegoPhone::status() {
@@ -177,6 +157,18 @@ namespace StegoPhone {
             this->toggleUserLED();
             delay(interval);
         }
+    }
+
+    void StegoPhone::OnUSBKeyboardPress(int unicode) {
+        StegoPhone::getInstance()->toggleUserLED();
+    }
+
+    void StegoPhone::OnUSBKeyboardRawPress(uint8_t keycode) {
+        //StegoPhone::getInstance()->toggleUserLED();
+    }
+
+    void StegoPhone::OnUSBKeyboardRawRelease(uint8_t keycode) {
+        //StegoPhone::getInstance()->toggleUserLED();
     }
 
     void StegoPhone::intRN52Update() // (static isr)

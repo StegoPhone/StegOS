@@ -21,6 +21,7 @@
 #include "sdios.h"
 #include "FreeStack.h"
 #include "ExFatlib\ExFatLib.h"
+#include "USBHost_t36.h"
 
 #define SD_CONFIG SdioConfig(DMA_SDIO)
 
@@ -106,6 +107,8 @@ namespace StegoPhone {
         static U8G2_SSD1322_NHD_256X64_F_4W_SW_SPI display;
 
         static SdExFat sd;
+        static USBHost usb;
+        static KeyboardController keyboard;
 
         // Internal
         //================================================================================================
@@ -119,6 +122,10 @@ namespace StegoPhone {
         void drawDisplay(u8g2_int_t x, u8g2_int_t y, const uint64_t data, bool send, bool clear);
         void drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear);
         void drawDisplay(u8g2_int_t x, u8g2_int_t y, const std::vector<char*> data, bool send, bool clear);
+
+        static void OnUSBKeyboardPress(int unicode);
+        static void OnUSBKeyboardRawPress(uint8_t keycode);
+	    static void OnUSBKeyboardRawRelease(uint8_t keycode);
     };
 }
 
