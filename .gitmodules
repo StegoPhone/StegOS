@@ -1,3 +1,6 @@
 [submodule "lib/cpp-bmp-images"]
 	path = lib/cpp-bmp-images
 	url = git@github.com:StegoPhone/cpp-bmp-images.git
+[submodule "lib/USBHost_t36"]
+	path = lib/USBHost_t36
+	url = git@github.com:PaulStoffregen/USBHost_t36.git
