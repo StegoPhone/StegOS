@@ -24,7 +24,6 @@
 
 #define SD_CONFIG SdioConfig(DMA_SDIO)
 
-#include "BMPpp.h"
 #include "rn52.h"
 
 namespace StegoPhone {
@@ -115,9 +114,11 @@ namespace StegoPhone {
         StegoStatus _status;
         static StegoPhone *_instance;
 
-        void displayGrayscaleBytes(uint8_t count, unsigned char *data);
-
         bool displayLogo();
+
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const uint64_t data, bool send, bool clear);
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear);
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const std::vector<char*> data, bool send, bool clear);
     };
 }
 

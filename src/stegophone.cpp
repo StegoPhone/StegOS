@@ -50,49 +50,50 @@ namespace StegoPhone {
         return _instance;
     }
 
-    void StegoPhone::displayGrayscaleBytes(uint8_t count, unsigned char *data) {
-        uint8_t u8x8_d_ssd1322_256x64_gray_preamble[] = {
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, uint64_t data, bool send, bool clear) {
+        char buf[50];
+        snprintf(buf, sizeof(buf),  "%" PRIu64, data);
+        drawDisplay(x , y, buf, send, clear);
+    }
 
-                U8X8_DLY(1),
-                U8X8_START_TRANSFER(),      /* enable chip, delay is part of the transfer start */
-                U8X8_DLY(1),
-                U8X8_CAA(0xA0, 0x14, 0x11), // Set_Remap_25664(0x14,0x11);
-                U8X8_CAA(0x15, 0x1C, 0x5B), // Set_Column_Address_25664(0x1C,0x5B);
-                U8X8_CAA(0x75, 0x00, 0x3F), // Set_Row_Address_25664(0x00,0x3F);
-                U8X8_C(0x5C),               // Set_Write_RAM_25664() - Enable MCU to Write DATA RAM
-        };
-        uint8_t u8x8_d_ssd1322_256x64_gray_postamble[] = {
-                U8X8_DLY(1),                          /* delay 2ms */
-                U8X8_END_TRANSFER(),        /* disable chip */
-                U8X8_END()                        /* end of sequence */
-        };
-        u8x8_t *tmp = display.getU8x8();
-        u8x8_byte_SendBytes(tmp, sizeof(u8x8_d_ssd1322_256x64_gray_preamble), u8x8_d_ssd1322_256x64_gray_preamble);
-        u8x8_byte_SendBytes(tmp, count, data);
-        u8x8_byte_SendBytes(tmp, sizeof(u8x8_d_ssd1322_256x64_gray_postamble), u8x8_d_ssd1322_256x64_gray_postamble);
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear) {
+        if (clear) display.clearBuffer();
+        display.drawStr(x, y, data);
+        if (send) display.sendBuffer();
+    }
+
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, std::vector<char*> data, bool send, bool clear) {
+        for (size_t i=0; i<data.size(); i++) {
+            drawDisplay(x,y,data[i], (i == 0) && send, (i == (data.size() - 1)) && clear);
+        }
     }
 
     bool StegoPhone::displayLogo() {
         bool haveLogo = false;
         std::vector<unsigned char> logoEncoded;
-        display.clearBuffer();
-        display.drawStr(0, 10, "StegoPhone / StegOS");
-        display.drawStr(0, 20, "SD Initialized");
-        display.drawStr(0, 30, "Opening Logo File");
-        display.sendBuffer();
+        drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
+        drawDisplay(0, 20, "SD Initialized", true, false);
+        drawDisplay(0, 30, "Opening Logo File", true, false);
 
+        ExFile stegoLogo = StegoPhone::sd.open("stegophone.xbm", FILE_READ | O_READ);
+        if (stegoLogo) {
+            uint64_t fileSize = stegoLogo.size();
+            drawDisplay(0, 10, fileSize, true, true);
 
-        BMPpp::BMPpp stegoLogo;
-        if (stegoLogo.read(StegoPhone::sd, "stegophone.bmp")) {
-            display.drawStr(0, 40, "Reading Logo File");
-            display.sendBuffer();
-
-            BMPpp::BMP stegoBMP = stegoLogo.getBMP();
-            // get its size:
-            uint32_t fileSize = stegoBMP.file_header.file_size;
-
-            ConsoleSerial.println(fileSize);
-            haveLogo = true;
+            delay(1000);
+            uint8_t fileBuf[fileSize];
+            uint64_t read = stegoLogo.readBytes(fileBuf, fileSize);
+            drawDisplay(0, 20, read, true, false);
+            delay(1000);
+            if (read == fileSize) {
+                display.drawXBM(0, 0, 256, 64, fileBuf);
+                display.sendBuffer();
+                haveLogo = true;
+            } else {
+                drawDisplay(0,10, "error", true, true);
+            }
+        } else {
+            drawDisplay(0, 10, "no load", true, true);
         }
 
         return haveLogo;
@@ -100,49 +101,44 @@ namespace StegoPhone {
 
     void StegoPhone::setup() {
         this->_status = StegoStatus::InitializationStart;
-        display.clear();
         display.setFont(u8g2_font_amstrad_cpc_extended_8f);
-        display.drawStr(0, 10, "StegoPhone / StegOS");
-        display.sendBuffer();
+        drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
 
         this->_status = StegoStatus::DisplayInitialized;
 
         // boot RN-52
-        display.drawStr(0, 20, "RN52 Initializing");
-        display.sendBuffer();
+        drawDisplay(0, 20, "RN52 Initializing", true, false);
         RN52 *rn52 = RN52::getInstance();
         // try to initialize
         if (!rn52->setup()) {
-            display.clearBuffer();
-            display.drawStr(0, 10, "StegoPhone / StegOS");
-            display.drawStr(0, 20, "RN52 Error");
-            display.sendBuffer();
+            drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
+            drawDisplay(0, 20, "RN52 Error", true, false);
             this->_status = StegoStatus::InitializationFailure;
             this->blinkForever();
         } else {
             this->_status = StegoStatus::Ready;
         }
 
-        display.clearBuffer();
-        display.drawStr(0, 10, "StegoPhone / StegOS");
-        display.drawStr(0, 20, "Initializing SD Card");
-        display.sendBuffer();
+        drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
+        drawDisplay(0, 20, "Initializing SD Card", true, false);
 
         if (!sd.begin(SD_CONFIG)) {
-            display.clearBuffer();
-            display.drawStr(0, 10, "StegoPhone / StegOS");
-            display.drawStr(0, 20, "SD Failed init");
-            display.sendBuffer();
+            drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
+            drawDisplay(0, 20, "SD Failed init", true, false);
             ConsoleSerial.println("SD initialization failed");
             this->blinkForever();
         }
 
+        drawDisplay(0, 30, "SD init complete", true, false);
+
         if (!this->displayLogo()) {
-            display.clearBuffer();
-            display.drawStr(0, 10, "StegoPhone / StegOS");
-            display.drawStr(0, 20, "Ready");
-            display.sendBuffer();
         }
+        // if (!this->displayLogo()) {
+        //     display.clearBuffer();
+        //     display.drawStr(0, 10, "StegoPhone / StegOS");
+        //     display.drawStr(0, 20, "Ready");
+        //     display.sendBuffer();
+        // }
     }
 
     void StegoPhone::loop() {
