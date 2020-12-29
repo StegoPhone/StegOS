@@ -26,7 +26,6 @@ namespace StegoPhone {
     StegoPhone::StegoPhone() {
         this->_status = StegoStatus::Offline;
         this->userLEDStatus = true;
-        this->rn52InterruptOccurred = false; // updated by ISR if RN52 has an event
 
         // Serial ports
         ConsoleSerial.begin(ConsoleSerialRate); // console/debug
@@ -41,8 +40,6 @@ namespace StegoPhone {
         pinMode(userLEDPin, OUTPUT);
 
         digitalWrite(userLEDPin, StegoPhone::userLEDStatus);
-
-        attachInterrupt(digitalPinToInterrupt(rn52InterruptPin), intRN52Update, FALLING);
 
         Wire.begin(); //Join I2C bus
 
@@ -63,10 +60,16 @@ namespace StegoPhone {
         this->_status = StegoStatus::DisplayInitialized;
 
         // boot RN-52
-        drawDisplay(0, 20, "RN52 Initializing", true, false);
+        drawDisplay(0, 20, "RN52 Initializing in 5..", true, false);
+        int countdown = 5;
+        while(countdown-- > 0) {
+            drawDisplay(0, 30, "   ", true, false);
+            drawDisplay(0, 30, (uint64_t) countdown, true, false);
+            delay(1000);
+        }
         RN52 *rn52 = RN52::getInstance();
         // try to initialize
-        if (!rn52->setup()) {
+        if (!rn52->setup() || !rn52->Enable()) {
             drawDisplay(0, 10, "StegoPhone / StegOS", true, true);
             drawDisplay(0, 20, "RN52 Error", true, false);
             this->_status = StegoStatus::InitializationFailure;
@@ -101,21 +104,10 @@ namespace StegoPhone {
     }
 
     void StegoPhone::loop() {
-        // blink if you can hear me
-        if (this->rn52InterruptOccurred)
-            this->toggleUserLED();
 
         // give the RN52 a chance to handle its inputs
         RN52 *rn52 = RN52::getInstance();
-        rn52->loop(this->rn52InterruptOccurred);
-        this->rn52InterruptOccurred = false;
-
-        switch (this->_status) {
-            case StegoStatus::Ready:
-                // intentional fallthrough
-            default:
-                break;
-        }
+        rn52->loop();
 
         // handle USB
         usb.Task();
@@ -133,6 +125,13 @@ namespace StegoPhone {
             Serial.print(mouse.getWheelH());
             Serial.println();
             mouse.mouseDataClear();
+        }
+
+        switch (this->_status) {
+            case StegoStatus::Ready:
+                // intentional fallthrough
+            default:
+                break;
         }
     }
 
@@ -522,11 +521,6 @@ namespace StegoPhone {
 
     void StegoPhone::OnUSBKeyboardRawRelease(uint8_t keycode) {
         //StegoPhone::getInstance()->toggleUserLED();
-    }
-
-    void StegoPhone::intRN52Update() // (static isr)
-    {
-        StegoPhone::getInstance()->rn52InterruptOccurred = true;
     }
 
     //Bool function to search Serial RX buffer for a string value

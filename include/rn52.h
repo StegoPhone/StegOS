@@ -22,9 +22,10 @@ namespace StegoPhone {
     public:
         static RN52 *getInstance();
 
+
         bool setup();
 
-        void loop(bool rn52InterruptOccurred);
+        void loop();
 
         void receiveLine(char *line);
 
@@ -34,11 +35,9 @@ namespace StegoPhone {
 
         void rn52Command(const char *cmd);
 
-        void rn52Exec(const char *cmd, char *buf, const int interDelay = 100, const int bufferSize = 1024);
+        bool rn52Exec(const char *cmd, char *buf, const int bufferSize, const char *match, const int interDelay = 100, const int timeout = 500);
 
         unsigned short rn52Status(char *hexArray);
-
-        void rn52Debug(const char *cmd, const int interDelay = 50, const int bufferSize = 1024);
 
         bool ExceptionOccurred();
 
@@ -54,6 +53,10 @@ namespace StegoPhone {
 
         bool CmdModeDisable();
 
+        void flushSerial();
+
+        bool readSerialUntil(const char *match, char *buf, const uint32_t bufferSize, uint32_t timeout);
+
     protected:
         void setEnable(bool newValue);
 
@@ -68,6 +71,12 @@ namespace StegoPhone {
         RN52Status _status;
         bool _enabled;
         bool _cmd;
+
+        // ISR/MODIFIED
+        //================================================================================================
+        static void intRN52Update();
+
+        volatile bool interruptOccurred; // updated by ISR if RN52 has an event
     };
 }
 

@@ -110,7 +110,6 @@ namespace StegoPhone {
         static void intRN52Update();
 
         volatile bool userLEDStatus;
-        volatile boolean rn52InterruptOccurred; // updated by ISR if RN52 has an event
 
         // HARDWARE HANDLES
         //================================================================================================
