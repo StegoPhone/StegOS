@@ -109,6 +109,7 @@ namespace StegoPhone {
         static SdExFat sd;
         static USBHost usb;
         static KeyboardController keyboard;
+        static MouseController mouse;
 
         // Internal
         //================================================================================================
@@ -124,6 +125,7 @@ namespace StegoPhone {
         void drawDisplay(u8g2_int_t x, u8g2_int_t y, const std::vector<char*> data, bool send, bool clear);
 
         static void OnUSBKeyboardPress(int unicode);
+        static void OnUSBKeyboardHIDExtrasPress(uint32_t top, uint16_t key);
         static void OnUSBKeyboardRawPress(uint8_t keycode);
 	    static void OnUSBKeyboardRawRelease(uint8_t keycode);
     };
