@@ -55,30 +55,6 @@ namespace StegoPhone {
         return _instance;
     }
 
-    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, uint64_t data, bool send, bool clear) {
-        char buf[50];
-        snprintf(buf, sizeof(buf),  "%" PRIu64, data);
-        drawDisplay(x , y, buf, send, clear);
-    }
-
-    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear) {
-        if (clear) display.clear();
-        display.drawStr(x, y, data);
-        if (send) display.sendBuffer();
-    }
-
-    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, std::vector<char*> data, bool send, bool clear) {
-        for (size_t i=0; i<data.size(); i++) {
-            drawDisplay(x,y,data[i], (i == 0) && send, (i == (data.size() - 1)) && clear);
-        }
-    }
-
-    bool StegoPhone::displayLogo() {
-        bool haveLogo = false;
-
-        return haveLogo;
-    }
-
     void StegoPhone::setup() {
         this->_status = StegoStatus::InitializationStart;
         display.setFont(u8g2_font_amstrad_cpc_extended_8f);
@@ -119,7 +95,9 @@ namespace StegoPhone {
         if (!this->displayLogo()) {
         }
 
-        display.clear();
+        display.setFont(u8g2_font_profont22_tf);
+        drawDisplay(70, 32, "StegoPhone", true, true);
+        display.setFont(u8g2_font_amstrad_cpc_extended_8f);
     }
 
     void StegoPhone::loop() {
@@ -158,6 +136,38 @@ namespace StegoPhone {
         }
     }
 
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, uint64_t data, bool send, bool clear) {
+        char buf[50];
+        snprintf(buf, sizeof(buf),  "%" PRIu64, data);
+        drawDisplay(x , y, buf, send, clear);
+    }
+
+
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, char data, bool send, bool clear) {
+        if (clear) display.clear();
+        const char tmp[2] = { data, '\0'};
+        display.drawStr(x, y, tmp);
+        if (send) display.sendBuffer();
+    }
+
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear) {
+        if (clear) display.clear();
+        display.drawStr(x, y, data);
+        if (send) display.sendBuffer();
+    }
+
+    void StegoPhone::drawDisplay(u8g2_int_t x, u8g2_int_t y, std::vector<char*> data, bool send, bool clear) {
+        for (size_t i=0; i<data.size(); i++) {
+            drawDisplay(x,y,data[i], (i == 0) && send, (i == (data.size() - 1)) && clear);
+        }
+    }
+
+    bool StegoPhone::displayLogo() {
+        bool haveLogo = false;
+
+        return haveLogo;
+    }
+
     StegoStatus StegoPhone::status() {
         return this->_status;
     }
@@ -179,31 +189,95 @@ namespace StegoPhone {
     }
 
     void StegoPhone::OnUSBKeyboardPress(int unicode) {
-        StegoPhone::getInstance()->toggleUserLED();
-        switch (unicode) {
-            case KEYD_UP       : Serial.print("UP"); break;
-            case KEYD_DOWN     : Serial.print("DN"); break;
-            case KEYD_LEFT     : Serial.print("LEFT"); break;
-            case KEYD_RIGHT    : Serial.print("RIGHT"); break;
-            case KEYD_INSERT   : Serial.print("Ins"); break;
-            case KEYD_DELETE   : Serial.print("Del"); break;
-            case KEYD_PAGE_UP  : Serial.print("PUP"); break;
-            case KEYD_PAGE_DOWN: Serial.print("PDN"); break;
-            case KEYD_HOME     : Serial.print("HOME"); break;
-            case KEYD_END      : Serial.print("END"); break;
-            case KEYD_F1       : Serial.print("F1"); break;
-            case KEYD_F2       : Serial.print("F2"); break;
-            case KEYD_F3       : Serial.print("F3"); break;
-            case KEYD_F4       : Serial.print("F4"); break;
-            case KEYD_F5       : Serial.print("F5"); break;
-            case KEYD_F6       : Serial.print("F6"); break;
-            case KEYD_F7       : Serial.print("F7"); break;
-            case KEYD_F8       : Serial.print("F8"); break;
-            case KEYD_F9       : Serial.print("F9"); break;
-            case KEYD_F10      : Serial.print("F10"); break;
-            case KEYD_F11      : Serial.print("F11"); break;
-            case KEYD_F12      : Serial.print("F12"); break;
-            default: Serial.print((char) unicode); break;
+        StegoPhone *stego = StegoPhone::StegoPhone::getInstance();
+        stego->toggleUserLED();
+
+        std::map<int, std::string>::iterator specialKey;
+        std::map<int, std::string> specialKeys = {
+            {KEYD_UP       , "UP"},
+            {KEYD_DOWN     , "DN"},
+            {KEYD_LEFT     , "LEFT"},
+            {KEYD_RIGHT    , "RIGHT"},
+            {KEYD_INSERT   , "Ins"},
+            {KEYD_DELETE   , "Del"},
+            {KEYD_PAGE_UP  , "PUP"},
+            {KEYD_PAGE_DOWN, "PDN"},
+            {KEYD_HOME     , "HOME"},
+            {KEYD_END      , "END"},
+            {KEYD_F1       , "F1"},
+            {KEYD_F2       , "F2"},
+            {KEYD_F3       , "F3"},
+            {KEYD_F4       , "F4"},
+            {KEYD_F5       , "F5"},
+            {KEYD_F6       , "F6"},
+            {KEYD_F7       , "F7"},
+            {KEYD_F8       , "F8"},
+            {KEYD_F9       , "F9"},
+            {KEYD_F10      , "F10"},
+            {KEYD_F11      , "F11"},
+            {KEYD_F12      , "F12"}
+        };
+        std::map<int, std::string>::iterator controlKey;
+        std::map<int, std::string> controlKeys = {
+            {  0, "NULL"},
+            {  1, "SOH"},
+            {  2, "STX"},
+            {  3, "ETX"},
+            {  4, "EOT"},
+            {  5, "ENQ"},
+            {  6, "ACK"},
+            {  7, "BEL"},
+            {  8, "BS"},
+            {  9, "HT"},
+            { 10, "LF"},
+            { 11, "VT"},
+            { 12, "FF"},
+            { 13, "CR"},
+            { 14, "SO"},
+            { 15, "SI"},
+            { 16, "DLE"},
+            { 17, "DC1"},
+            { 18, "DC2"},
+            { 19, "DC3"},
+            { 20, "DC4"},
+            { 21, "NAK"},
+            { 22, "SYN"},
+            { 23, "ETB"},
+            { 24, "CAN"},
+            { 25, "EM"},
+            { 26, "SUB"},
+            { 27, "ESC"},
+            { 28, "FS"},
+            { 29, "GS"},
+            { 30, "RS"},
+            { 31, "US"},
+            { 32, "Space"}
+        };
+
+        bool found = false;
+        specialKey = specialKeys.find(unicode);
+        if (specialKey != specialKeys.end()) {
+            Serial.println(specialKey->second.c_str());
+            stego->drawDisplay(0, 10, "Key: ", true, false);
+            stego->drawDisplay(60, 10, "      ", true, false);
+            stego->drawDisplay(60, 10, specialKey->second.c_str(), true, false);
+            found = true;
+        } else if (unicode <= 32) {
+            controlKey = controlKeys.find(unicode);
+            if (controlKey != controlKeys.end()) {
+                Serial.println(controlKey->second.c_str());
+                stego->drawDisplay(0, 10, "Key: ", true, false);
+                stego->drawDisplay(60, 10, "      ", true, false);
+                stego->drawDisplay(60, 10, controlKey->second.c_str(), true, false);
+                found = true;
+            }
+        }
+
+        if (!found) {
+            Serial.print((char) unicode);
+            stego->drawDisplay(0, 10, "Key: ", true, false);
+            stego->drawDisplay(60, 10, "      ", true, false);
+            stego->drawDisplay(60, 10, (char) unicode, true, false);
         }
     }
 

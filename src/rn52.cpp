@@ -146,8 +146,11 @@ namespace StegoPhone {
         Serial.println(result);
         for (int i = 0; i < 5; i++) // copy through term to output array
             hexArray[i] = result[i];
-        char *pEnd;
-        return strtol(result, &pEnd, 16); // return decimal value
+        unsigned short retval = strtol(result, NULL, 16); // return decimal value
+        StegoPhone::getInstance()->drawDisplay(0, 50, "RN52:", true, false);
+        StegoPhone::getInstance()->drawDisplay(80, 50, "          ", true, false);
+        StegoPhone::getInstance()->drawDisplay(80, 50, hexArray, true, false);
+        return retval;
     }
 
     void RN52::rn52Debug(const char *cmd, const int interDelay, const int bufferSize) {

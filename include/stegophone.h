@@ -12,6 +12,9 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <map>
+#include <string>
+
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -86,6 +89,13 @@ namespace StegoPhone {
 
         void loop();
 
+        bool displayLogo();
+
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const uint64_t data, bool send, bool clear);
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const char data, bool send, bool clear);
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear);
+        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const std::vector<char*> data, bool send, bool clear);
+
         // Built-In LED
         //================================================================================================
         void setUserLED(bool newValue);
@@ -117,12 +127,6 @@ namespace StegoPhone {
 
         StegoStatus _status;
         static StegoPhone *_instance;
-
-        bool displayLogo();
-
-        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const uint64_t data, bool send, bool clear);
-        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const char* data, bool send, bool clear);
-        void drawDisplay(u8g2_int_t x, u8g2_int_t y, const std::vector<char*> data, bool send, bool clear);
 
         static void OnUSBKeyboardPress(int unicode);
         static void OnUSBKeyboardHIDExtrasPress(uint32_t top, uint16_t key);
